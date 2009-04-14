@@ -1,5 +1,7 @@
 class MemoryGauge
   def self.measure(objects_to_instantiate)
+    GC.start
+    GC.disable
     mem_before_instantiation= real_memory
     start_time= Time.now
 
@@ -13,6 +15,8 @@ class MemoryGauge
     time_elapsed= end_time - start_time
 
     mem_used= real_memory - mem_before_instantiation
+    GC.enable
+    GC.start
     return mem_used, time_elapsed
   end
 
