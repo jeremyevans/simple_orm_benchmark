@@ -1,22 +1,21 @@
-To setup and run the benchmark/performance tests please follow these steps:
+To use this, you first need to copy db.yml.example to db.yml, and modify it
+accordingly.
 
---I am using MySQL so you can install MySQL and the MySQL Adapter or go ahead and use another by modifying the db.yml file
+Then you can run the benchmarking via:
+
+  ruby simple_orm_benchmark -o sequel -n 1000
+
+or:
+
+  ruby simple_orm_benchmark -o active_record -n 1000
+
+Options:
+
+* -o is the ORM to use (sequel and active_record currently supported)
+* -n is the number of objects to test with (1000 by default)
   
-  1) Create a database named 'sequel_performer' (this can also be changed in config/db.yml)
-  2) Create the parties and people tables
-    PARTIES:
-      :id       int11 PK  auto_increment
-      :theme    char(255)   NOT NULL
-    PEOPLE:
-      :id          int(11) PK auto_increment 
-      :party_id    int(11) FK NOT NULL
-      :name        char(255)                  
-      :address     char(255)                 
-  3) Make sure you have a user named root with no password or modify the config/db.yml file as needed to match a user in your db
-  4) Verify you have all the dependencies installed (They are listed in dependencies.rb)
-  5) Go ahead and cd into the root of the app and execute the runner file to begin testing
-     ruby runner.rb
+Thanks to tim.linquist@gmail.com (timo3377) for sequel-benchmark and
+activerecord-benchmark, on which simple_orm_benchmark is based.
 
-NOTE: 
-  This is pretty bare bones and not too in depth.  It was all I needed to complete my task at the time     
-  Please let me know if anything is missing concerning these steps; tim.linquist@gmail.com
+Contact me at code@jeremyevans.net if you have questions about this benchmark
+script.

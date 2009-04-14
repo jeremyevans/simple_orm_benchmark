@@ -1,13 +1,10 @@
-require "lib/party"
-require "lib/person"
-
 class PerformanceGauge
   class << self
     def creating_n_objects_with_a_person(parties_to_create)
       Benchmark.bmbm do |x|
         x.report("") do
           parties_to_create.times do
-            party= Party.create( {:theme=>"X-mas"} )
+            party= Party.create(:theme=>"X-mas")
             Person.create(:party=>party, :name=>"Test_#{party.id}")
           end
         end
@@ -17,8 +14,7 @@ class PerformanceGauge
     def loading_all_parties_with_their_people
       Benchmark.bmbm do |x| 
         x.report("") do
-         parties= Party.eager(:people).all 
-         parties.each {|party| people= party.people; people.size }
+         Party.eager_load_people
        end
       end
     end
@@ -36,7 +32,7 @@ class PerformanceGauge
       parties= Party.all
       Benchmark.bm do |x|
         x.report("") do
-          parties.each {|party| party.destroy }
+          parties.each{|party| party.destroy}
         end
       end
     end
@@ -44,6 +40,6 @@ class PerformanceGauge
 
   private
   def self.create_n_parties(parties_to_create)
-    parties_to_create.times { p=Party.create({:theme=>"Halloween"}) }
+    parties_to_create.times{Party.create(:theme=>"Halloween")}
   end
 end

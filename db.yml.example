@@ -1,5 +1,5 @@
 adapter: 'mysql'
 server: 'localhost'
-database: 'sequel_performer'
+database: 'simple_orm_benchmark'
 user: 'root'
 
