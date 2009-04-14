@@ -4,7 +4,10 @@ class MemoryGauge
     start_time= Time.now
 
     parties = Party.all
-    parties.each{|p| p.destroy}
+    parties.each do |p|
+      p.people.each{|person| person.destroy}
+      p.destroy
+    end
 
     end_time=Time.now
     time_elapsed= end_time - start_time
