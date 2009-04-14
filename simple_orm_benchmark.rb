@@ -49,3 +49,5 @@ puts "\nMEASURING MEMORY ALLOCATION FOR INSTANTIATION #{number} PARTY OBJECTS"
 kb_allocated, time_elapsed = MemoryGauge.measure( number )
 puts "\t#{kb_allocated} KB allocated to instantiate #{number} PARTIES\n\n"
 puts "\tTime Elapsed: #{time_elapsed}"
+
+Party.drop_tables
