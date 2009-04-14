@@ -1,0 +1,20 @@
+To setup and run the benchmark/performance tests please follow these steps:
+
+--I am using MySQL so you can install MySQL and the MySQL Adapter or go ahead and use another by modifying the db.yml file
+  
+  1) Create a database named 'sequel_performer' (this can also be changed in config/db.yml)
+  2) Create the parties and people tables
+    PARTIES:
+      :id       int11 PK  auto_increment
+      :theme    char(255)   NOT NULL
+    PEOPLE:
+      :id          int(11) PK auto_increment 
+      :party_id    int(11) FK NOT NULL
+      :name        char(255)                  
+      :address     char(255)                 
+  3) Make sure you have a user named root with no password or modify the config/db.yml file as needed to match a user in your db
+  4) Verify you have all the dependencies installed (They are listed in dependencies.rb)
+  5) Go ahead and cd into the root of the app and execute the runner file to begin testing
+     ruby runner.rb
+     
+  Please let me know if anything is missing concerning these steps; tim.linquist@gmail.com

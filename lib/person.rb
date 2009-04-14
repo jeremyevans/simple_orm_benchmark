@@ -1,6 +1,6 @@
 require "config/dependencies"
-
-Sequel.connect('mysql://root@localhost/sequel_party')
+require "config/db_connect"
+Sequel.connect( DbConnect.new.connection_string )
 
 class Person < Sequel::Model  
   belongs_to :party

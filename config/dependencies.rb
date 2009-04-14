@@ -3,4 +3,5 @@ class Dependencies
   require 'mysql'
   require 'sequel'
   require 'benchmark'
+  require 'yaml'
 end
