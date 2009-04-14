@@ -1,6 +1,5 @@
 require "lib/party"
 require "lib/person"
-require 'benchmark'
 
 class PerformanceGauge
   class << self

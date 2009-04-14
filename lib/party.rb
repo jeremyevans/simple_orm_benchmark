@@ -1,6 +1,4 @@
-require 'rubygems'
-require 'mysql'
-require 'sequel'
+require "config/dependencies"
 
 Sequel.connect('mysql://root@localhost/sequel_party')
 class Party < Sequel::Model 

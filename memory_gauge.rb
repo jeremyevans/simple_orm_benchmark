@@ -1,4 +1,5 @@
 require "lib/party"
+
 class MemoryGauge
   class << self
     def real_memory
