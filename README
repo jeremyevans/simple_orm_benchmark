@@ -3,15 +3,12 @@ accordingly.
 
 Then you can run the benchmarking via:
 
-  ruby simple_orm_benchmark -o sequel -n 1000
-
-or:
-
-  ruby simple_orm_benchmark -o active_record -n 1000
+  ruby simple_orm_benchmark sequel-postgresql
+  ruby simple_orm_benchmark -n 100 activerecord-mysql
+  ruby simple_orm_benchmark -n 10000 sequel-sqlite
 
 Options:
 
-* -o is the ORM to use (sequel and active_record currently supported)
 * -n is the number of objects to test with (1000 by default)
   
 Thanks to tim.linquist@gmail.com (timo3377) for sequel-benchmark and

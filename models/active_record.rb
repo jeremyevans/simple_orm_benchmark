@@ -1,5 +1,5 @@
 require 'active_record'
-ActiveRecord::Base.establish_connection(YAML.load_file("db.yml"))
+ActiveRecord::Base.establish_connection(ORM_CONFIG)
 c = ActiveRecord::Base.connection
 
 c.drop_table(:people) rescue nil

@@ -1,5 +1,29 @@
-adapter: 'mysql'
-server: 'localhost'
-database: 'simple_orm_benchmark'
-user: 'root'
-
+sequel-postgresql:
+  orm: sequel
+  adapter: postgres
+  database: simple_orm_benchmark
+  user: postgres
+sequel-mysql:
+  orm: sequel
+  adapter: mysql
+  host: localhost
+  database: simple_orm_benchmark
+  user: root
+sequel-sqlite:
+  orm: sequel
+  adapter: sqlite
+activerecord-postgresql:
+  orm: active_record
+  adapter: postgresql
+  database: simple_orm_benchmark
+  username: postgres
+activerecord-mysql:
+  orm: active_record
+  adapter: mysql
+  host: localhost
+  database: simple_orm_benchmark
+  username: root
+activerecord-sqlite:
+  orm: active_record
+  adapter: sqlite3
+  database: ':memory:'

@@ -1,5 +1,5 @@
 require 'sequel'
-DB = Sequel.connect(YAML.load_file("db.yml"))
+DB = Sequel.connect(ORM_CONFIG)
 
 DB.drop_table(:people) rescue nil
 DB.drop_table(:parties) rescue nil
