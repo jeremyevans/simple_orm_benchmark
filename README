@@ -16,5 +16,7 @@ To setup and run the benchmark/performance tests please follow these steps:
   4) Verify you have all the dependencies installed (They are listed in dependencies.rb)
   5) Go ahead and cd into the root of the app and execute the runner file to begin testing
      ruby runner.rb
-     
+
+NOTE: 
+  This is pretty bare bones and not too in depth.  It was all I needed to complete my task at the time     
   Please let me know if anything is missing concerning these steps; tim.linquist@gmail.com
