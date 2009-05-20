@@ -4,14 +4,11 @@ require 'benchmark'
 require 'yaml'
 require 'optparse'
 
-require 'lib/performance_gauge'
-require 'lib/memory_gauge'
-
 CONFIG_FILE = 'db.yml'
 ORM_CONFIG = {}
 config = nil
-orm = 'sequel'
-number = 1000
+$level = 5
+$disable_gc = false
 
 def parse_config(v)
   unless config = (YAML.load(File.read(CONFIG_FILE))[v] rescue nil)
@@ -30,44 +27,162 @@ opts = OptionParser.new do |opts|
   opts.separator "CONFIG is the entry in db.yml to use (e.g. sequel-postgresql)"
   opts.separator ""
   
-  opts.on("-n", "--number NUMBER", "Number of objects to test with") do |v|
-    number = v.to_i
+  opts.on("-g", "--disable-gc", "Disable GC during the tests") do
+    $disable_gc = true
   end
+  
+  opts.on("-l", "--level LEVEL", "Testing level") do |l|
+    $level = l.to_i
+  end
+end
+configs = opts.permute(*ARGV)
+if configs.length > 1
+  options = ARGV - configs
+  configs.each{|c| system('ruby', __FILE__, *(options + [c]))}
+  exit
 end
 opts.parse!
 
-unless config = ARGV.shift
+if ARGV.length == 0
   puts "ERROR: No configuration specified!\n"
   puts opts
   exit(1)
 end
-orm = parse_config(config)
+$config = ARGV.shift
 
-require "models/#{orm}"
+require "models/#{parse_config($config)}"
 
-puts "MEASURING #{orm} using config #{config}:\n\n"
+BENCHES=[
+[lambda{"Model Object Creation: #{50*@n} objects"},
+nil,
+lambda{(50*@n).times{create_party}}],
 
-if number == 0
-  puts "The number of parties supplied was 0 . Tests not ran."
-  return
+[lambda{"Model Object Select: #{100*@n} objects #{@n} times"},
+lambda{@n.times{insert_party(100*@n)}},
+lambda{all_parties}],
+
+[lambda{"Model Object Select and Save: #{10*@n} objects"},
+lambda{insert_party(10*@n)},
+lambda{save_all_parties}],
+
+[lambda{"Model Object Destruction: #{100*@n} objects"},
+lambda{insert_party(100*@n); @parties=all_parties},
+lambda{destroy_parties(@parties)}],
+
+[lambda{"Model Object And Associated Object Creation: #{20*@n} objects"},
+nil,
+lambda{(20*@n).times{create_party_with_person}}],
+
+[lambda{"Model Object and Associated Object Destruction: #{25*@n} objects"},
+lambda{insert_party_people(25*@n, 1)},
+lambda{destroy_parties_and_people}],
+
+[lambda{"Eager Loading Query Per Association With 1-1 Records: #{20*@n} objects #{@n*5/7} times"},
+lambda{insert_party_people(20*@n, 1)},
+lambda{(@n*5/7).times{eager_load_party_people}}],
+
+[lambda{"Eager Loading Single Query With 1-1 Records: #{20*@n} objects #{@n*5/7} times"},
+lambda{insert_party_people(20*@n, 1)},
+lambda{(@n*5/7).times{eager_graph_party_people}}],
+
+[lambda{"Eager Loading Query Per Association With 1-#{@n} Records: #{@n*@n} objects #{@n*5/7} times"},
+lambda{insert_party_people(@n, @n)},
+lambda{(@n*5/7).times{eager_load_party_people}}],
+
+[lambda{"Eager Loading Single Query With 1-#{@n} Records: #{@n*@n} objects #{@n*5/7} times"},
+lambda{insert_party_people(@n, @n)},
+lambda{(@n*5/7).times{eager_graph_party_people}}],
+
+[lambda{"Eager Loading Query Per Association With 1-#{@n}-#{@n} Records: #{2*@n*@n} objects #{@n*2/7} times"},
+lambda{insert_party_both_people(@n, @n)},
+lambda{(@n*2/7).times{eager_load_party_both_people}}],
+
+[lambda{"Eager Loading Single Query With 1-#{@n}-#{@n} Records: #{2*@n*@n} objects 1 time"},
+lambda{insert_party_both_people(@n, @n)},
+lambda{eager_graph_party_both_people}],
+
+[lambda{"Lazy Loading With 1-1 Records: #{20*@n} objects 1 time"},
+lambda{insert_party_people(20*@n, 1)},
+lambda{lazy_load_party_people}],
+
+[lambda{"Lazy Loading With 1-#{@n} Records: #{@n*@n} objects 1 time"},
+lambda{insert_party_people(@n, @n)},
+lambda{lazy_load_party_people}],
+
+]
+
+class Bench
+  def initialize(transaction, bench_array)
+    @n = 2**$level
+    @transaction = transaction
+    @label, @before, @bench = bench_array
+  end
+  
+  def bench
+    begin
+      instance_eval(&@before) if @before
+      res = "#{$config},Level #{$level},#{Benchmark.measure(instance_eval(&@label)){_bench}.format('%n,%u,%y,%t,%r').gsub(/[()]/, '')}"
+    ensure
+      delete_all
+    end
+    puts "#{res},#{@mem_used},#{'No ' unless @transaction}Transaction"
+    $stdout.flush
+  end
+
+  private
+
+  def _bench
+    GC.start
+    GC.disable if $disable_gc
+
+    start_mem = real_memory
+    l = lambda{instance_eval(&@bench)}
+    @transaction ? transaction(&l) : l.call
+    @mem_used = real_memory - start_mem
+
+    GC.enable if $disable_gc
+    GC.start
+  end
+
+  def all_parties
+    Party.all
+  end
+
+  def create_party
+    Party.create(:theme=>"Halloween")
+  end
+
+  def create_party_with_person
+    party = Party.create(:theme=>"X-mas")
+    Person.create(:party=>party, :name=>"Test_#{party.id}")
+  end
+
+  def destroy_parties(parties)
+    parties.each{|p| p.destroy}
+  end
+  
+  def destroy_parties_and_people
+    all_parties.each do |p|
+      p.people.each{|person| person.destroy}
+      p.destroy
+    end
+  end
+
+  def lazy_load_party_people
+    all_parties.each{|p| p.people.each{|p| p.id}}
+  end
+  
+  def real_memory
+    return `ps -p #{Process::pid} -o rsz`.split("\n")[1].chomp.to_i
+  end
+  
+  def save_all_parties
+    all_parties.each{|p| p.theme += '1'; p.save}
+  end
 end
 
-puts "MEASURING CREATION OF #{number} PARTIES"
-puts PerformanceGauge.benchmark_creating_n_objects( number )
-
-# *2 because bmbm runs create script twice
-puts "\nMEASURING DESTRUCTION OF #{number * 2} PARTIES"
-puts PerformanceGauge.benchmark_destroying_all_objects
-
-puts "\nMEASURING CREATION OF #{number} PARTIES AND #{number} PEOPLE"
-puts PerformanceGauge.creating_n_objects_with_a_person(number)
-
-puts "\nMEASURING EAGER LOADING OF #{number} PARTIES AND THEIR PEOPLE"
-puts PerformanceGauge.loading_all_parties_with_their_people
-
-puts "\nMEASURING MEMORY ALLOCATION FOR INSTANTIATION #{number} PARTY OBJECTS"
-kb_allocated, time_elapsed = MemoryGauge.measure( number )
-puts "\t#{kb_allocated} KB allocated to instantiate #{number} PARTIES\n\n"
-puts "\tTime Elapsed: #{time_elapsed}"
-
-Party.drop_tables
+BENCHES.each do |b|
+  Bench.new(false,b).bench
+  Bench.new(true,b).bench
+end
+Bench.drop_tables

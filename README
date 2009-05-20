@@ -1,18 +1,80 @@
+Introduction
+------------
+
+simple_orm_benchmarker is a simple script to benchmark ruby ORMs.  It
+currently supports ActiveRecord and Sequel.
+
+Configuration
+-------------
+
 To use this, you first need to copy db.yml.example to db.yml, and modify it
 accordingly.
 
+Usage
+-----
+
 Then you can run the benchmarking via:
 
-  ruby simple_orm_benchmark sequel-postgresql
-  ruby simple_orm_benchmark -n 100 activerecord-mysql
-  ruby simple_orm_benchmark -n 10000 sequel-sqlite
+  ruby simple_orm_benchmark.rb sequel-postgresql
+  ruby simple_orm_benchmark.rb -l 4 activerecord-mysql
+  ruby simple_orm_benchmark.rb -l 6 -g activerecord-sqlite sequel-sqlite
 
 Options:
 
-* -n is the number of objects to test with (1000 by default)
+* -l is the testing level.  It's designed to be logrithmic, with a level 6
+  test taking about twice as long as a level 5.  The default level is 5.
+* -g will disable garbage collection during the test, to measure the amount
+  of garbage the test generates.
+
+You can list one or more configurations to test as arguments.  The
+arguments should match keys in the hash parsed from the yaml file.
+
+The output of the benchmark is in CSV, with columns in the following order:
+
+configuration_name: Name of configuration
+level: Testing level
+benchmark_name: Name of benchmark
+user_cpu_time: Amount of user CPU time
+system_cpu_time: Amount of system CPU time
+total_cpu_time: Amount of total CPU time
+elapsed_real_time: Amount of actual/real/wallclock time
+kb_of_memory_used: Difference in process memory usage from the benchmark
+transaction_used: Whether a transaction was used
+
+All tests are run both inside of and outside of a transaction, so you get
+results both ways.
+
+Reporting
+---------
+
+For easier comparison of different configurations, you can use the
+results_aggregator.rb script:
+
+  ruby simple_orm_benchmark.rb sequel-sqlite activerecord-sqlite > r.txt
+  ruby results_aggregator.rb r.txt
+
+That will output CSV, with columns in the following order:
+
+activerecord-sqlite_real_time
+sequel-sqlite_real_time
+benchmark_name_with_transaction
+
+Using this you can see comparitive results easily, not just for different
+ORMs, but also for different databases with the same ORM.
+
+Source
+------
+
+git://github.com/jeremyevans/simple_orm_benchmark.git
+http://github.com/jeremyevans/simple_orm_benchmark
+
+Author
+------
   
+Jeremy Evans (code@jeremyevans.net)
+
+Contact me if you have questions about this benchmark script.  Contributions of
+new benchmark tests are appreciated.
+
 Thanks to tim.linquist@gmail.com (timo3377) for sequel-benchmark and
 activerecord-benchmark, on which simple_orm_benchmark is based.
-
-Contact me at code@jeremyevans.net if you have questions about this benchmark
-script.
