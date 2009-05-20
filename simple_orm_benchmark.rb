@@ -58,11 +58,11 @@ nil,
 lambda{(50*@n).times{create_party}}],
 
 [lambda{"Model Object Select: #{100*@n} objects #{@n} times"},
-lambda{@n.times{insert_party(100*@n)}},
-lambda{all_parties}],
+lambda{insert_party(100*@n)},
+lambda{@n.times{all_parties}}],
 
-[lambda{"Model Object Select and Save: #{10*@n} objects"},
-lambda{insert_party(10*@n)},
+[lambda{"Model Object Select and Save: #{50*@n} objects"},
+lambda{insert_party(50*@n)},
 lambda{save_all_parties}],
 
 [lambda{"Model Object Destruction: #{100*@n} objects"},
@@ -105,9 +105,9 @@ lambda{eager_graph_party_both_people}],
 lambda{insert_party_people(20*@n, 1)},
 lambda{lazy_load_party_people}],
 
-[lambda{"Lazy Loading With 1-#{@n} Records: #{@n*@n} objects 1 time"},
+[lambda{"Lazy Loading With 1-#{@n} Records: #{@n*@n} objects #{@n/2} times"},
 lambda{insert_party_people(@n, @n)},
-lambda{lazy_load_party_people}],
+lambda{(@n/2).times{lazy_load_party_people}}],
 
 ]
 
