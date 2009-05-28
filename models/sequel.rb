@@ -47,6 +47,10 @@ class Bench
   def eager_load_party_people
     Party.eager(:people).all{|party| party.people.each{|p| p.id}}
   end
+  
+  def first_party
+    Party.first
+  end
 
   def insert_party(times)
     times.times{DB << "INSERT INTO parties (theme) VALUES ('Halloween')"}
@@ -71,6 +75,10 @@ class Bench
 
   def transaction(&block)
     DB.transaction(&block)
+  end
+  
+  def with_connection
+    yield
   end
 
   def self.drop_tables

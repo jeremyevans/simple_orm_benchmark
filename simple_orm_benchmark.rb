@@ -9,6 +9,7 @@ ORM_CONFIG = {}
 config = nil
 $level = 5
 $disable_gc = false
+$all_configs = false
 
 def parse_config(v)
   unless config = (YAML.load(File.read(CONFIG_FILE))[v] rescue nil)
@@ -20,12 +21,20 @@ def parse_config(v)
   orm
 end
 
+def all_configs
+  YAML.load(File.read(CONFIG_FILE)).keys rescue []
+end
+
 opts = OptionParser.new do |opts|
   opts.banner = "Ruby ORM Simple Benchmark Tool"
   opts.define_head "Usage: simple_orm_benchmarker [options] CONFIG"
   opts.separator ""
   opts.separator "CONFIG is the entry in db.yml to use (e.g. sequel-postgresql)"
   opts.separator ""
+  
+  opts.on("-a", "--all-configs", "Test all configurations") do
+    $all_configs = true
+  end
   
   opts.on("-g", "--disable-gc", "Disable GC during the tests") do
     $disable_gc = true
@@ -36,7 +45,11 @@ opts = OptionParser.new do |opts|
   end
 end
 configs = opts.permute(*ARGV)
-if configs.length > 1
+if $all_configs
+  options = ARGV - ["-a"] - configs
+  all_configs.sort.each{|c| system('ruby', __FILE__, *(options + [c]))}
+  exit
+elsif configs.length > 1
   options = ARGV - configs
   configs.each{|c| system('ruby', __FILE__, *(options + [c]))}
   exit
@@ -111,6 +124,36 @@ lambda{(@n/2).times{lazy_load_party_people}}],
 
 ]
 
+thread_block = lambda do
+  threads = []
+  @num_threads.round.times do
+    threads << Thread.new do
+      with_connection do
+        insert_party(@n)
+        @n.times do
+          p = first_party
+          update_party(p, 'Christmas')
+          destroy_parties([p])
+        end
+      end
+    end
+    threads.each{|t| t.join}
+  end
+end
+
+NO_TRANSACTION_BENCHES = 
+[
+
+[lambda{"Light Threading with #{Math.sqrt(@n).round} threads"},
+nil,
+lambda{@num_threads=Math.sqrt(@n).round; instance_eval(&thread_block)}],
+
+[lambda{"Heavy Threading with #{@n} threads"},
+nil,
+lambda{@num_threads=@n; instance_eval(&thread_block)}],
+
+]
+
 class Bench
   def initialize(transaction, bench_array)
     @n = 2**$level
@@ -179,10 +222,20 @@ class Bench
   def save_all_parties
     all_parties.each{|p| p.theme += '1'; p.save}
   end
+  
+  def update_party(party, theme)
+    party.theme = theme
+    party.save
+  end
 end
 
 BENCHES.each do |b|
   Bench.new(false,b).bench
   Bench.new(true,b).bench
 end
+
+NO_TRANSACTION_BENCHES.each do |b|
+  Bench.new(false,b).bench
+end
+
 Bench.drop_tables

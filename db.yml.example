@@ -12,6 +12,7 @@ sequel-mysql:
 sequel-sqlite:
   orm: sequel
   adapter: sqlite
+  database: sq_test.sqlite3
 activerecord-postgresql:
   orm: active_record
   adapter: postgresql
@@ -26,4 +27,4 @@ activerecord-mysql:
 activerecord-sqlite:
   orm: active_record
   adapter: sqlite3
-  database: ':memory:'
+  database: ar_test.sqlite3

@@ -47,6 +47,10 @@ class Bench
   def eager_load_party_people
     Party.find(:all, :include=>:people).each{|party| party.people.each{|p| p.id}}
   end
+  
+  def first_party
+    Party.find(:first)
+  end
 
   def insert_party(times)
     c = ActiveRecord::Base.connection
@@ -74,6 +78,11 @@ class Bench
 
   def transaction(&block)
     ActiveRecord::Base.transaction(&block)
+  end
+  
+  def with_connection
+    yield
+    ActiveRecord::Base.clear_active_connections!
   end
 
   def self.drop_tables

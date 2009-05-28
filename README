@@ -15,12 +15,14 @@ Usage
 
 Then you can run the benchmarking via:
 
+  ruby simple_orm_benchmark.rb -a
   ruby simple_orm_benchmark.rb sequel-postgresql
   ruby simple_orm_benchmark.rb -l 4 activerecord-mysql
   ruby simple_orm_benchmark.rb -l 6 -g activerecord-sqlite sequel-sqlite
 
 Options:
 
+* -a will test all configurations in the db.yml configuration file.
 * -l is the testing level.  It's designed to be logrithmic, with a level 6
   test taking about twice as long as a level 5.  The default level is 5.
 * -g will disable garbage collection during the test, to measure the amount
@@ -41,7 +43,7 @@ elapsed_real_time: Amount of actual/real/wallclock time
 kb_of_memory_used: Difference in process memory usage from the benchmark
 transaction_used: Whether a transaction was used
 
-All tests are run both inside of and outside of a transaction, so you get
+Most tests are run both inside of and outside of a transaction, so you get
 results both ways.
 
 Reporting
