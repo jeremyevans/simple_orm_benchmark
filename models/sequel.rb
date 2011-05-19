@@ -3,15 +3,15 @@ DB = Sequel.connect(ORM_CONFIG)
 DB.drop_table(:people) rescue nil
 DB.drop_table(:parties) rescue nil
 
-DB.create_table(:parties) do
+DB.create_table(:parties, :engine=>:InnoDB) do
   primary_key :id
   String :theme
 end
 
-DB.create_table(:people) do
+DB.create_table(:people, :engine=>:InnoDB) do
   primary_key :id
-  foreign_key :party_id, :parties
-  foreign_key :other_party_id, :parties
+  foreign_key :party_id, :parties, :key=>:id
+  foreign_key :other_party_id, :parties, :key=>:id
   String :name
   String :address
 end
