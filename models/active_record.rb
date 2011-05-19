@@ -33,7 +33,7 @@ class Bench
   end
 
   def eager_graph_party_both_people
-    Party.find(:all, :include=>[:people, :other_people], :conditions=>'people.id=people.id AND other_peoples_parties.id=other_peoples_parties.id').each{|party| party.people.each{|p| p.id}; party.other_people.each{|p| p.id}}
+    Party.find(:all, :include=>[:people, :other_people], :conditions=>'people.id=people.id AND other_people_parties.id=other_people_parties.id').each{|party| party.people.each{|p| p.id}; party.other_people.each{|p| p.id}}
   end
 
   def eager_graph_party_people
