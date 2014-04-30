@@ -32,24 +32,36 @@ class Bench
     c.execute("DELETE FROM parties")
   end
 
+  def all_parties
+    Party.all.to_a
+  end
+
+  def get_party(id)
+    Party.find(id)
+  end
+
+  def get_party_hash(id)
+    Party.find_by(:id=>id)
+  end
+
   def eager_graph_party_both_people
-    Party.find(:all, :include=>[:people, :other_people], :conditions=>'people.id=people.id AND other_people_parties.id=other_people_parties.id').each{|party| party.people.each{|p| p.id}; party.other_people.each{|p| p.id}}
+    Party.eager_load(:people, :other_people).where('people.id=people.id AND other_people_parties.id=other_people_parties.id').to_a.each{|party| party.people.each{|p| p.id}; party.other_people.each{|p| p.id}}
   end
 
   def eager_graph_party_people
-    Party.find(:all, :include=>:people, :conditions=>'people.id=people.id').each{|party| party.people.each{|p| p.id}}
+    Party.eager_load(:people).where('people.id=people.id').to_a.each{|party| party.people.each{|p| p.id}}
   end
 
   def eager_load_party_both_people
-    Party.find(:all, :include=>[:people, :other_people]).each{|party| party.people.each{|p| p.id}; party.other_people.each{|p| p.id}}
+    Party.preload(:people, :other_people).to_a.each{|party| party.people.each{|p| p.id}; party.other_people.each{|p| p.id}}
   end
 
   def eager_load_party_people
-    Party.find(:all, :include=>:people).each{|party| party.people.each{|p| p.id}}
+    Party.preload(:people).to_a.each{|party| party.people.each{|p| p.id}}
   end
   
   def first_party
-    Party.find(:first)
+    Party.first
   end
 
   def insert_party(times)

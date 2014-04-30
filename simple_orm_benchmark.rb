@@ -77,6 +77,14 @@ proc{(50*@n).times{create_party}}],
 proc{insert_party(100*@n)},
 proc{@n.times{all_parties}}],
 
+[proc{"Model Object Select PK: #{10*@n} objects #{@n} times"},
+proc{insert_party(10*@n); @party_ids=all_parties.map{|p| p.id}},
+proc{@n.times{@party_ids.each{|i| get_party(i)}}}],
+
+[proc{"Model Object Select Hash: #{10*@n} objects #{@n} times"},
+proc{insert_party(10*@n); @party_ids=all_parties.map{|p| p.id}},
+proc{@n.times{@party_ids.each{|i| get_party_hash(i)}}}],
+
 [proc{"Model Object Select and Save: #{50*@n} objects"},
 proc{insert_party(50*@n)},
 proc{save_all_parties}],
@@ -188,10 +196,6 @@ class Bench
 
     GC.enable if $disable_gc
     GC.start
-  end
-
-  def all_parties
-    Party.all
   end
 
   def create_party

@@ -17,11 +17,13 @@ DB.create_table(:people, :engine=>:InnoDB) do
 end
 
 class Party < Sequel::Model
+  plugin :prepared_statements
   one_to_many :people 
   one_to_many :other_people, :class=>:Person, :key=>:other_party_id
 end
 
 class Person < Sequel::Model  
+  plugin :prepared_statements
   many_to_one :party
   many_to_one :other_party, :class=>:Party
 end
@@ -30,6 +32,18 @@ class Bench
   def delete_all
     DB << "DELETE FROM people"
     DB << "DELETE FROM parties"
+  end
+
+  def all_parties
+    Party.all
+  end
+
+  def get_party(id)
+    Party[id]
+  end
+
+  def get_party_hash(id)
+    Party.find(:id=>id)
   end
 
   def eager_graph_party_both_people
