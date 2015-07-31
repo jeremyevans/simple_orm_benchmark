@@ -223,7 +223,7 @@ class Bench
   end
   
   def real_memory
-    return `ps -p #{Process::pid} -o rsz`.split("\n")[1].chomp.to_i
+    return `ps -p #{Process::pid} -o rss`.split("\n")[1].chomp.to_i
   end
   
   def save_all_parties
