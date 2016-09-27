@@ -5,13 +5,13 @@ sequel-postgresql:
   user: postgres
 sequel-mysql:
   orm: sequel
-  adapter: mysql
+  adapter: mysql2
   host: localhost
   database: simple_orm_benchmark
   user: root
 sequel-sqlite:
   orm: sequel
-  adapter: sqlite
+  adapter: amalgalite
   database: sq_test.sqlite3
 activerecord-postgresql:
   orm: active_record
@@ -20,7 +20,7 @@ activerecord-postgresql:
   username: postgres
 activerecord-mysql:
   orm: active_record
-  adapter: mysql
+  adapter: mysql2
   host: localhost
   database: simple_orm_benchmark
   username: root
@@ -28,3 +28,8 @@ activerecord-sqlite:
   orm: active_record
   adapter: sqlite3
   database: ar_test.sqlite3
+mongoid-mongodb:
+  orm: mongoid
+  database: simple_orm_benchmark
+  transactional: false
+  debug: true

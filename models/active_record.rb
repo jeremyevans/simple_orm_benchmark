@@ -1,14 +1,26 @@
 require 'active_record'
+if ORM_CONFIG['debug']
+  ActiveRecord::Base.logger = Logger.new(STDOUT)
+  ActiveRecord::Base.logger.level = :debug
+end
 ActiveRecord::Base.establish_connection(ORM_CONFIG)
-c = ActiveRecord::Base.connection
-c.drop_table(:people) rescue nil
-c.drop_table(:parties) rescue nil
+DB = ActiveRecord::Base.connection
+DB.drop_table(:people) rescue nil
+DB.drop_table(:parties) rescue nil
 
-c.create_table(:parties) do |t|
+DB.create_table(:parties) do |t|
   t.string :theme
 end
 
-c.create_table(:people) do |t|
+DB.create_table(:json_parties) do |t|
+  if ORM_CONFIG['adapter']=='sqlite3'
+    t.text :stuff
+  else
+    t.json :stuff
+  end
+end
+
+DB.create_table(:people) do |t|
   t.integer :party_id
   t.integer :other_party_id
   t.string :name
@@ -18,6 +30,10 @@ end
 class Party < ActiveRecord::Base
   has_many :people
   has_many :other_people, :class_name=>'Person', :foreign_key=>'other_party_id'
+end
+
+class JsonParty < ActiveRecord::Base
+  serialize :stuff, JSON if ORM_CONFIG['adapter']=='sqlite3'
 end
 
 class Person < ActiveRecord::Base  
@@ -44,6 +60,30 @@ class Bench
     Party.find_by(:id=>id)
   end
 
+  def insert_party_deep(times)
+    times.times{JsonParty.create(:stuff=>{pumpkin: 1, candy: 1})}
+  end
+
+  def get_party_hash_deep
+    if ORM_CONFIG['adapter']=='sqlite3'
+      JsonParty.find_by("json_extract(stuff, '$.pumpkin') = ?", 1)
+    else
+      JsonParty.find_by("stuff->>'$.pumpkin' = ?", '1')
+    end
+  end
+
+  def update_party_hash_deep(id)
+    if ORM_CONFIG['adapter']=='postgresql'
+      JsonParty.where(id: id).update_all(["stuff = jsonb_set(stuff::jsonb, '{pumpkin}', ?)", '2'])
+    else
+      JsonParty.where(id: id).update_all(["stuff = JSON_SET(stuff, '$.pumpkin', ?)", '2'])
+    end
+  end
+
+  def update_party_hash_full(id)
+    JsonParty.where(id: id).update(:stuff=>{:pumpkin=>2, :candy=>1})
+  end
+
   def eager_graph_party_both_people
     Party.eager_load(:people, :other_people).where('people.id=people.id AND other_people_parties.id=other_people_parties.id').to_a.each{|party| party.people.each{|p| p.id}; party.other_people.each{|p| p.id}}
   end
@@ -65,25 +105,22 @@ class Bench
   end
 
   def insert_party(times)
-    c = ActiveRecord::Base.connection
-    times.times{c.execute("INSERT INTO parties (theme) VALUES ('Halloween')")}
+    times.times{Party.create(:theme=>'Halloween')}
   end
 
   def insert_party_people(times, people_per_party)
-    c = ActiveRecord::Base.connection
     times.times do
       p = Party.create(:theme=>'Halloween')
-      people_per_party.times{c.execute("INSERT INTO people (name, party_id) VALUES ('Party_#{p.id}', #{p.id})")}
+      people_per_party.times{Person.create(:name=>"Party_#{p.id}", :party_id=>p.id)}
     end
   end
 
   def insert_party_both_people(times, people_per_party)
-    c = ActiveRecord::Base.connection
     times.times do
       p = Party.create(:theme=>'Halloween')
       people_per_party.times do
-        c.execute("INSERT INTO people (name, party_id) VALUES ('Party_#{p.id}', #{p.id})")
-        c.execute("INSERT INTO people (name, other_party_id) VALUES ('Party_#{p.id}', #{p.id})")
+        Person.create(:name=>"Party_#{p.id}", :party_id=>p.id)
+        Person.create(:name=>"Party_#{p.id}", :other_party_id=>p.id)
      end
     end
   end
@@ -98,8 +135,24 @@ class Bench
   end
 
   def self.drop_tables
-    c = ActiveRecord::Base.connection
-    c.drop_table(:people)
-    c.drop_table(:parties)
+    DB.drop_table(:people)
+    DB.drop_table(:parties)
+  end
+
+  def self.support_json?
+    begin
+      case ORM_CONFIG['adapter']
+        when 'sqlite3'
+          DB.execute('select json("{}")').to_a[0][0] == '{}'
+        when 'mysql2'
+          DB.execute("select JSON_OBJECT()").to_a[0][0] == '{}'
+        when 'postgresql'
+          DB.execute("select json_object('{}')").to_a[0]['json_object'] == '{}'
+        else
+          false
+      end
+    rescue
+      false
+    end
   end
 end

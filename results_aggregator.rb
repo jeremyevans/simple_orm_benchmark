@@ -11,7 +11,10 @@ ARGF.read.split("\n").each do |l|
 end
 
 adapters = adapters.uniq.sort
-puts "#{adapters.join(',')},Benchmark"
+puts "Benchmark,#{adapters.join(',')}"
 results.sort.each do |k,v|
-  puts "#{adapters.map{|a| v[a][6]}.join(',')},#{k}"
+  puts "#{k},#{adapters.map do |a|
+    next unless v[a]
+    v[a][6]
+  end.join(',')}"
 end

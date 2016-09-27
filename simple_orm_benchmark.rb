@@ -165,6 +165,20 @@ proc{@num_threads=@n; instance_eval(&thread_block)}],
 
 ]
 
+JSON_BENCHES = [
+  [proc{"Model Object Select Hash Deep: #{10*@n} objects #{@n} times"},
+   proc{insert_party_deep(10*@n); @party_ids=all_parties.map{|p| p.id}},
+   proc{@n.times{@party_ids.each{|i| get_party_hash_deep}}}],
+
+  [proc{"Model Object Update Hash Deep: #{10*@n} objects #{@n} times"},
+   proc{insert_party_deep(10*@n); @party_ids=all_parties.map{|p| p.id}},
+   proc{@n.times{@party_ids.each{|i| update_party_hash_deep(i)}}}],
+
+  [proc{"Model Object Update Hash Full: #{10*@n} objects #{@n} times"},
+   proc{insert_party_deep(10*@n); @party_ids=all_parties.map{|p| p.id}},
+   proc{@n.times{@party_ids.each{|i| update_party_hash_full(i)}}}],
+]
+
 class Bench
   def initialize(transaction, bench_array)
     @n = 2**$level
@@ -238,11 +252,18 @@ end
 
 BENCHES.each do |b|
   Bench.new(false,b).bench
-  Bench.new(true,b).bench
+  Bench.new(true,b).bench unless ORM_CONFIG['transactional'] === false
 end
 
 NO_TRANSACTION_BENCHES.each do |b|
   Bench.new(false,b).bench
+end
+
+if Bench.support_json?
+  JSON_BENCHES.each do |b|
+    Bench.new(false,b).bench
+    Bench.new(true,b).bench unless ORM_CONFIG['transactional'] === false
+  end
 end
 
 Bench.drop_tables

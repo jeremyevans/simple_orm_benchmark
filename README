@@ -46,14 +46,28 @@ transaction_used: Whether a transaction was used
 Most tests are run both inside of and outside of a transaction, so you get
 results both ways.
 
+There are also some JSON tests, but only modern versions of databases support JSON functions.
+Even though SQLite doesn't enable JSON functions by default.
+Benchmark script will just skip JSON tests for configurations that doesn't support it.
+If you really want to enable them in SQLite you should install it with `functions` and `json1` extensions,
+e.g. `brew install --with-functions --with-json1 sqlite`
+Then just once run
+```
+require 'sqlite3'
+c = SQLite3::Database.new('database')
+c.enable_load_extension(1)
+c.load_extension('/usr/local/Cellar/sqlite/3.14.2/lib/libsqlitefunctions.dylib')
+```
+It's not necessary if you use `amalgalite` adapter for `Sequel`, because it has enabled all extensions by default.
+
 Reporting
 ---------
 
 For easier comparison of different configurations, you can use the
 results_aggregator.rb script:
 
-  ruby simple_orm_benchmark.rb sequel-sqlite activerecord-sqlite > r.txt
-  ruby results_aggregator.rb r.txt
+  ruby ./simple_orm_benchmark.rb sequel-sqlite activerecord-sqlite > r.txt
+  ruby ./results_aggregator.rb r.txt
 
 That will output CSV, with columns in the following order:
 
