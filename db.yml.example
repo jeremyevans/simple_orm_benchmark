@@ -11,8 +11,12 @@ sequel-mysql:
   user: root
 sequel-sqlite:
   orm: sequel
-  adapter: amalgalite
+  adapter: sqlite
   database: sq_test.sqlite3
+sequel-amalgalite:
+  orm: sequel
+  adapter: amalgalite
+  database: amal_test.sqlite3
 activerecord-postgresql:
   orm: active_record
   adapter: postgresql
@@ -32,4 +36,3 @@ mongoid-mongodb:
   orm: mongoid
   database: simple_orm_benchmark
   transactional: false
-  debug: true

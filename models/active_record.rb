@@ -1,25 +1,32 @@
 require 'active_record'
 if ORM_CONFIG['debug']
-  ActiveRecord::Base.logger = Logger.new(STDOUT)
+  ActiveRecord::Base.logger = Logger.new($stderr)
   ActiveRecord::Base.logger.level = :debug
 end
 ActiveRecord::Base.establish_connection(ORM_CONFIG)
 DB = ActiveRecord::Base.connection
-DB.drop_table(:people) rescue nil
-DB.drop_table(:parties) rescue nil
 
+JSON_SUPPORTED = begin 
+  case ORM_CONFIG['adapter']
+  when 'sqlite3'
+    DB.execute('select json("{}")').to_a[0][0] == '{}'
+  when 'mysql2'
+    DB.execute("select JSON_OBJECT()").to_a[0][0] == '{}'
+  when 'postgresql'
+    DB.execute("select json_object('{}')").to_a[0]['json_object'] == '{}'
+  else
+    false
+  end
+rescue
+  false
+end
+
+DB.drop_table(:parties) rescue nil
 DB.create_table(:parties) do |t|
   t.string :theme
 end
 
-DB.create_table(:json_parties) do |t|
-  if ORM_CONFIG['adapter']=='sqlite3'
-    t.text :stuff
-  else
-    t.json :stuff
-  end
-end
-
+DB.drop_table(:people) rescue nil
 DB.create_table(:people) do |t|
   t.integer :party_id
   t.integer :other_party_id
@@ -32,20 +39,31 @@ class Party < ActiveRecord::Base
   has_many :other_people, :class_name=>'Person', :foreign_key=>'other_party_id'
 end
 
-class JsonParty < ActiveRecord::Base
-  serialize :stuff, JSON if ORM_CONFIG['adapter']=='sqlite3'
-end
-
 class Person < ActiveRecord::Base  
   belongs_to :party
   belongs_to :other_party, :class_name=>'Party', :foreign_key=>'other_party_id'
 end
 
+if JSON_SUPPORTED
+  DB.drop_table(:json_parties) rescue nil
+  DB.create_table(:json_parties) do |t|
+    if ORM_CONFIG['adapter']=='sqlite3'
+      t.text :stuff
+    else
+      t.json :stuff
+    end
+  end
+
+  class JsonParty < ActiveRecord::Base
+    serialize :stuff, JSON if ORM_CONFIG['adapter']=='sqlite3'
+  end
+end
+
 class Bench
   def delete_all
-    c = ActiveRecord::Base.connection
-    c.execute("DELETE FROM people")
-    c.execute("DELETE FROM parties")
+    DB.execute("DELETE FROM people")
+    DB.execute("DELETE FROM parties")
+    DB.execute("DELETE FROM json_parties") if JSON_SUPPORTED
   end
 
   def all_parties
@@ -105,13 +123,13 @@ class Bench
   end
 
   def insert_party(times)
-    times.times{Party.create(:theme=>'Halloween')}
+    times.times{DB.execute("INSERT INTO parties (theme) VALUES ('Halloween')")}
   end
 
   def insert_party_people(times, people_per_party)
     times.times do
       p = Party.create(:theme=>'Halloween')
-      people_per_party.times{Person.create(:name=>"Party_#{p.id}", :party_id=>p.id)}
+      people_per_party.times{DB.execute("INSERT INTO people (name, party_id) VALUES ('Party_#{p.id}', #{p.id})")}
     end
   end
 
@@ -119,8 +137,8 @@ class Bench
     times.times do
       p = Party.create(:theme=>'Halloween')
       people_per_party.times do
-        Person.create(:name=>"Party_#{p.id}", :party_id=>p.id)
-        Person.create(:name=>"Party_#{p.id}", :other_party_id=>p.id)
+        DB.execute("INSERT INTO people (name, party_id) VALUES ('Party_#{p.id}', #{p.id})")
+        DB.execute("INSERT INTO people (name, other_party_id) VALUES ('Party_#{p.id}', #{p.id})")
      end
     end
   end
@@ -137,22 +155,6 @@ class Bench
   def self.drop_tables
     DB.drop_table(:people)
     DB.drop_table(:parties)
-  end
-
-  def self.support_json?
-    begin
-      case ORM_CONFIG['adapter']
-        when 'sqlite3'
-          DB.execute('select json("{}")').to_a[0][0] == '{}'
-        when 'mysql2'
-          DB.execute("select JSON_OBJECT()").to_a[0][0] == '{}'
-        when 'postgresql'
-          DB.execute("select json_object('{}')").to_a[0]['json_object'] == '{}'
-        else
-          false
-      end
-    rescue
-      false
-    end
+    DB.drop_table(:json_parties) if JSON_SUPPORTED
   end
 end

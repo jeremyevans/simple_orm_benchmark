@@ -10,6 +10,7 @@ Mongoid.configure do |config|
   config.connect_to(ORM_CONFIG['database'])
 end
 Mongoid::Clients.default.database.drop
+JSON_SUPPORTED = true
 
 class Party
   include Mongoid::Document
@@ -119,9 +120,5 @@ class Bench
 
   def self.drop_tables
     Mongoid::Clients.default.database.drop
-  end
-
-  def self.support_json?
-    true
   end
 end

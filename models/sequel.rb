@@ -1,34 +1,36 @@
 require 'sequel'
-require 'json'
-require 'logger'
+
 DB = Sequel.connect(ORM_CONFIG)
 if ORM_CONFIG['debug']
-  DB.loggers << Logger.new($stdout)
+  require 'logger'
+  DB.loggers << Logger.new($stderr)
   DB.sql_log_level = :debug
 end
 
-DB.drop_table(:people) rescue nil
-DB.drop_table(:parties) rescue nil
-DB.extension :pg_json if ORM_CONFIG['adapter']=='postgres'
+JSON_SUPPORTED =  begin
+  case DB.database_type
+  when :sqlite
+    DB.get{json('{}')} == '{}'
+  when :mysql
+    DB.get{json_object{}} == '{}'
+  when :postgres
+    DB.get{json_object('{}')} == '{}'
+  else
+    false
+  end
+rescue
+  false
+end
 
-DB.create_table(:parties, :engine=>:InnoDB) do
+DB.create_table!(:parties, :engine=>:InnoDB) do
   primary_key :id
   String :theme
 end
 
-DB.create_table(:json_parties, :engine=>:InnoDB) do
+DB.create_table!(:people, :engine=>:InnoDB) do
   primary_key :id
-  if ORM_CONFIG['adapter']=='postgres'
-    Jsonb :stuff
-  else
-    String :stuff, :text=>true
-  end
-end
-
-DB.create_table(:people, :engine=>:InnoDB) do
-  primary_key :id
-  foreign_key :party_id, :parties, :key=>:id
-  foreign_key :other_party_id, :parties, :key=>:id
+  Integer :party_id
+  Integer :other_party_id
   String :name
   String :address
 end
@@ -39,21 +41,35 @@ class Party < Sequel::Model
   one_to_many :other_people, :class=>:Person, :key=>:other_party_id
 end
 
-class JsonParty < Sequel::Model
-  plugin :prepared_statements
-  plugin :serialization, :json, :stuff unless ORM_CONFIG['adapter']=='postgres'
-end
-
 class Person < Sequel::Model  
   plugin :prepared_statements
   many_to_one :party
   many_to_one :other_party, :class=>:Party
 end
 
+if JSON_SUPPORTED
+  require 'json'
+  DB.extension :pg_json if ORM_CONFIG['adapter']=='postgres'
+  DB.create_table!(:json_parties, :engine=>:InnoDB) do
+    primary_key :id
+    if ORM_CONFIG['adapter']=='postgres'
+      jsonb :stuff
+    else
+      String :stuff, :text=>true
+    end
+  end
+
+  class JsonParty < Sequel::Model
+    plugin :prepared_statements
+    plugin :serialization, :json, :stuff unless ORM_CONFIG['adapter']=='postgres'
+  end
+end
+
 class Bench
   def delete_all
     DB << "DELETE FROM people"
     DB << "DELETE FROM parties"
+    DB << "DELETE FROM json_parties" if JSON_SUPPORTED
   end
 
   def all_parties
@@ -117,13 +133,13 @@ class Bench
   end
 
   def insert_party(times)
-    times.times{Party.create(:theme=>'Halloween')}
+    times.times{DB << "INSERT INTO parties (theme) VALUES ('Halloween')"}
   end
 
   def insert_party_people(times, people_per_party)
     times.times do
       p = Party.create(:theme=>'Halloween')
-      people_per_party.times{Person.create(:name=>"Party_#{p.id}", :party_id=>p.id)}
+      people_per_party.times{DB << "INSERT INTO people (name, party_id) VALUES ('Party_#{p.id}', #{p.id})"}
     end
   end
 
@@ -131,8 +147,8 @@ class Bench
     times.times do
       p = Party.create(:theme=>'Halloween')
       people_per_party.times do
-        Person.create(:name=>"Party_#{p.id}", :party_id=>p.id)
-        Person.create(:name=>"Party_#{p.id}", :other_party_id=>p.id)
+        DB << "INSERT INTO people (name, party_id) VALUES ('Party_#{p.id}', #{p.id})"
+        DB << "INSERT INTO people (name, other_party_id) VALUES ('Party_#{p.id}', #{p.id})"
       end
     end
   end
@@ -147,22 +163,6 @@ class Bench
 
   def self.drop_tables
     DB.drop_table(:people, :parties)
-  end
-
-  def self.support_json?
-    begin
-      case DB.database_type
-        when :sqlite
-          DB.get{json('{}')} == '{}'
-        when :mysql
-          DB.get{json_object{}} == '{}'
-        when :postgres
-          DB.get{json_object('{}')} == '{}'
-        else
-          false
-      end
-    rescue
-      false
-    end
+    DB.drop_table(:json_parties) if JSON_SUPPORTED
   end
 end
