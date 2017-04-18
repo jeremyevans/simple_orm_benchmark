@@ -12,25 +12,7 @@ INPUT_COLUMNS = {
   transaction_used:  "Whether a transaction was used",
 }
 
-#
-# NOTE: 'benchmarks' are stored as a hash of hashes
-#
-# eg:
-#
-# {
-#   "Some Benchmark" => {
-#     "sequel-postgresql" => #<Row...>,
-#     "sequel-mysql"      => #<Row...>,
-#     ...
-#   },
-#   "Another benchmark" => {
-#     ...
-#   },
-#   ...
-# }
-#
-
-Row = Struct.new *INPUT_COLUMNS.keys
+Row = Struct.new(*INPUT_COLUMNS.keys)
 
 rows         = ARGF.read.split("\n").map { |line| Row.new *line.split(",") }
 config_names = rows.map(&:config_name).uniq
@@ -39,23 +21,19 @@ benchmarks   = {}
 rows.each do |row|
   key = "#{row.bench_name} (#{row.transaction_used})"
 
-  benchmarks[key] ||= {}
-  benchmarks[key][row.config_name] = row
+  b = benchmarks[key] ||= {}
+  b[row.config_name] = row
 end
 
-config_names = config_names.to_a
+puts "Benchmark,#{config_names.join(',')}"
 
-puts "#{config_names.join(',')},Benchmark"
-
-benchmarks.each do |bench_name, results|
-
-  fastest, _ = results.min_by { |config_name, row| row.elapsed_real_time.to_f }
-
+benchmarks.sort.each do |bench_name, results|
   cells = config_names.map do |config_name|
     if row = results[config_name]
-      "#{row.elapsed_real_time.to_f.round(4)}#{"*" if fastest == config_name} (#{row.kb_of_memory_used}k)"
+      row.elapsed_real_time.to_f.round(4)
     end
   end
 
-  puts "#{cells.join(',')},#{bench_name}"
+  cells.unshift(bench_name)
+  puts cells.join(',')
 end
