@@ -90,17 +90,17 @@ class Bench
 
   def get_party_hash_deep
     if ORM_CONFIG['adapter']=='postgres'
-      Party.find("stuff->>'pumpkin' = ?", '1')
+      Party.find(Sequel.lit("stuff->>'pumpkin' = ?", '1'))
     else
-      Party.find("json_extract(stuff, '$.pumpkin') = ?", 1)
+      Party.find(Sequel.lit("json_extract(stuff, '$.pumpkin') = ?", 1))
     end
   end
 
   def update_party_hash_deep(id)
     if ORM_CONFIG['adapter']=='postgres'
-      Party.where(id: id).update("stuff = jsonb_set(stuff::jsonb, '{pumpkin}', '2')")
+      Party.where(id: id).update(Sequel.lit("stuff = jsonb_set(stuff::jsonb, '{pumpkin}', '2')"))
     else
-      Party.where(id: id).update("stuff = JSON_SET(stuff, '$.pumpkin', '2')")
+      Party.where(id: id).update(Sequel.lit("stuff = JSON_SET(stuff, '$.pumpkin', '2')"))
     end
   end
 
@@ -113,11 +113,11 @@ class Bench
   end
 
   def eager_graph_party_both_people
-    Party.filter('people.id = people.id AND other_people.id=other_people.id').eager_graph(:people, :other_people).all{|party| party.people.each{|p| p.id}; party.other_people.each{|p| p.id}}
+    Party.where(Sequel.lit('people.id = people.id AND other_people.id=other_people.id')).eager_graph(:people, :other_people).all{|party| party.people.each{|p| p.id}; party.other_people.each{|p| p.id}}
   end
 
   def eager_graph_party_people
-    Party.filter('people.id = people.id').eager_graph(:people).all{|party| party.people.each{|p| p.id}}
+    Party.where(Sequel.lit('people.id = people.id')).eager_graph(:people).all{|party| party.people.each{|p| p.id}}
   end
 
   def eager_load_party_both_people
